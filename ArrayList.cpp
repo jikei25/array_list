@@ -44,7 +44,7 @@ protected:
 
 private:
     void checkIndex(int idx) {
-        if (idx >= count || idx < 0) throw Error("Index out of bound!")
+        if (idx >= count || idx < 0) throw Error("Index out of bound!");
     }
 
 public:
@@ -83,7 +83,7 @@ public:
         return data[idx];
     }
 
-    virtual void operator[](int idx) {
+    virtual T& operator[](int idx) {
         checkIndex(idx);
         return data[idx];
     }
@@ -99,7 +99,7 @@ public:
         if (idx1 == idx2) throw Error("Indices cannot be the same");
 
         T tmp = std::move(data[idx1]);
-        data[id1] = std::move(data[idx2]);
+        data[idx1] = std::move(data[idx2]);
         data[idx2] = std::move(tmp);  
     }
 
@@ -122,7 +122,7 @@ public:
         for (T *p = data + count, *pE = data + idx; p != pE; p--) {
             *p = std::move(*(p - 1));
         }
-        p[idx] = val;
+        data[idx] = val;
         count++;
 
     }
@@ -132,7 +132,7 @@ public:
         for (T *p = data + count, *pE = data + idx; p != pE; p--) {
             *p = std::move(*(p - 1));
         }
-        p[idx] = std::move(val);
+        data[idx] = std::move(val);
         count++;
     }
 
@@ -144,13 +144,53 @@ public:
     }
 
     virtual T* find(const T & key,
-                            std::function<bool(const T &, const T &)> eq = [](const T & a, const T & b) -> bool { return a == b; }) = 0;
+                            std::function<bool(const T &, const T &)> eq = [](const T & a, const T & b) -> bool { return a == b; }) {
+        for (T *p = data, *pE = data + count; p != pE; p++) {
+            if (eq(*p, key)) return p;
+        }
+        return nullptr;
+    }
     virtual int findIndex(const T & key,
-                                std::function<bool(const T & , const T &)> eq = [](const T & a, const T & b) -> bool { return a == b; }) = 0;
+                                std::function<bool(const T & , const T &)> eq = [](const T & a, const T & b) -> bool { return a == b; }) {
+        for (T *p = data, *pE = data + count; p != pE; p++) {
+            if (eq(*p, key)) return p - data;
+        }
+        return -1;
+    }
     virtual List<T*> findAll(const T & key, std::function<bool(const T & , const T &)> eq = 
-                            [](const T & a, const T & b) -> bool { return a == b; }) = 0;
-    virtual List<T*> split(int idx) = 0;
-    virtual void append(List<T> & bL) = 0;
-    virtual void reverse() = 0;
+                            [](const T & a, const T & b) -> bool { return a == b; }) {
+        ArrayList<T*> result;
+        for (T *p = data, *pE = data + count; p != pE; p++) {
+            if (eq(*p, key)) result.insert(result.getSize(), *p);
+        }
+        return result;
+    }
+    virtual List<T*> split(int idx) {
+        ArrayList<T*> result;
+        for (T *p = data + idx, *pE = data + count; p != pE; p++) {
+            result.insert(result.getSize(), *p);
+        }
+        for (T *p = data + idx, *pE = data + count; p != pE; p++) {
+            delete p;
+        }
+        count = idx;
+        capacity = count;
+        return result;
+    }
+    virtual void append(List<T> & bL) {
+        resize(count + bL.getSize());
+        T *p = data + count;
+        bL.traverse([&p](T & val) { *p++ = val; });
+        count += bL.getSize();
+    }
+    virtual void reverse() {
+        for (T *p = data, *pE = data + count / 2; p != pE; p++) {
+            swap(p - data, data + count - 1 - p);
+        }
+    }
 
 };
+
+int main() {
+    return 0;
+}
